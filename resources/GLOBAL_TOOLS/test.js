@@ -1,3 +1,9 @@
+/* ==== 诊断版（自动生成，勿直接编辑）====
+ * 来源：resources/HNUST_PG/hnust_pg.js（DEBUG_OVERLAY 置为 true）
+ * 重新生成：node tools/build-app-debug.js
+ * 作用：在教务系统页面顶部叠一条红色横幅，逐步显示进度与异常。
+ * 说明：问题定位完后，test.js 应换回正式版 hnust_pg.js。
+ */
 // resources/HNUST_PG/hnust_pg.js
 // 湖南科技大学 研究生管理信息系统(南京南软 GMIS 5.0) 拾光课程表适配脚本
 // 入口：https://yjsjw.hnust.edu.cn/gmis/home/stulogin （学生版登录页）
@@ -83,6 +89,35 @@ const toast = (msg) => {
     if (inBridge() && window.shiguangBridge) window.shiguangBridge.showToast(msg);
     else console.log('[HNUST_PG] ' + msg);
 };
+
+// ===== 诊断开关 =====
+// 置为 true 时，会在教务系统页面顶部叠一条红色横幅，逐步显示进度与任何异常。
+// 用于真机排查（toast / 弹窗都可能被静默吞掉，页面上的横幅不会）。
+// 提交上游前必须保持 false。
+const DEBUG_OVERLAY = true;
+
+function dbg(msg) {
+    console.log('[HNUST_PG] ' + msg);
+    if (!DEBUG_OVERLAY) return;
+    try {
+        let el = document.getElementById('__hnust_pg_dbg__');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = '__hnust_pg_dbg__';
+            el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;' +
+                'background:rgba(170,0,0,.93);color:#fff;font:12px/1.6 monospace;' +
+                'padding:10px 12px;white-space:pre-wrap;max-height:72%;overflow:auto';
+            (document.body || document.documentElement).appendChild(el);
+        }
+        el.textContent += msg + '\n';
+        el.scrollTop = el.scrollHeight;
+    } catch (e) { /* 诊断本身不能影响流程 */ }
+}
+
+if (DEBUG_OVERLAY) {
+    window.addEventListener('error', (e) => dbg('!! 未捕获错误: ' + (e && e.message)));
+    window.addEventListener('unhandledrejection', (e) => dbg('!! 未处理的 Promise 拒绝: ' + (e && e.reason)));
+}
 
 // ==========================================
 // 1. 地址与会话
@@ -457,18 +492,32 @@ async function saveConfig(courses, termname) {
 
 async function runImportFlow() {
     try {
+        dbg('启动 | path=' + location.pathname);
+        dbg('环境 | $=' + typeof window.$ + ' shiguangBridgePromise=' + typeof window.shiguangBridgePromise +
+            ' AndroidBridgePromise=' + typeof window.AndroidBridgePromise +
+            ' nativeBridge=' + typeof window._shiguangNativeBridge +
+            ' currentTableId=' + window.currentTableId);
+        dbg('会话段 | base=' + getAppBase());
+
         if (getAppBase().indexOf('(S(') < 0) {
             console.warn('[HNUST_PG] 当前地址不含 (S(...)) 会话段，可能已丢失登录态。');
+            dbg('!! 当前地址不含 (S(...)) 会话段，很可能是未登录或不在教务系统页面');
         }
 
         toast('正在获取课表数据，请稍候...');
 
         if (inBridge()) {
+            dbg('等待公告弹窗确认...');
             const go = await promptUserToStart();
+            dbg('公告弹窗返回: ' + go);
             if (!go) return;
+        } else {
+            dbg('!! 未检测到 shiguangBridgePromise，将跳过所有交互弹窗');
         }
 
+        dbg('请求学期列表...');
         const term = await getTerm();
+        dbg('学期选择结果: ' + JSON.stringify(term));
         if (term === null) {
             toast('已取消导入。');
             return;
@@ -478,28 +527,38 @@ async function runImportFlow() {
         let slots = WINTER_TIME_SLOTS;
         if (inBridge()) {
             slots = await selectTimeSlots();
+            dbg('作息选择: ' + (slots === null ? '取消' : slots.length + ' 节'));
             if (slots === null) {
                 toast('已取消导入。');
                 return;
             }
         }
 
+        dbg('请求课表原始数据...');
         const rows = await fetchTimetableRows(term.termcode);
+        dbg('拿到 ' + rows.length + ' 行，行标签: ' + rows.map((r) => r && r.mc).join(','));
+
         const courses = parseCoursesFromRows(rows);
+        dbg('解析出 ' + courses.length + ' 条课程');
 
         await saveConfig(courses, term.termname);
+        dbg('配置已保存');
         await saveTimeSlots(slots);
+        dbg('时间段已保存');
         await saveCourses(courses);
+        dbg('课程已保存');
 
         if (inBridge()) {
             toast('成功导入 ' + courses.length + ' 条课程！');
             window.shiguangBridge.notifyTaskCompletion();
+            dbg('✔ 全部完成');
         } else {
             alert('解析成功！共 ' + courses.length + ' 条课程，详情见控制台。');
         }
     } catch (error) {
         const message = (error && error.message) || '导入流程执行失败。';
         console.error('[HNUST_PG] runImportFlow error:', error);
+        dbg('!! 流程异常: ' + message + '\n' + ((error && error.stack) || ''));
         if (inBridge()) {
             // 失败时不发 notifyTaskCompletion，让用户能看到提示
             toast(message);
