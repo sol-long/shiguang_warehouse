@@ -1,9 +1,3 @@
-/* ==== 诊断版（自动生成，勿直接编辑）====
- * 来源：resources/HNUST_PG/hnust_pg.js（DEBUG_OVERLAY 置为 true）
- * 重新生成：node tools/build-app-debug.js
- * 作用：在教务系统页面顶部叠一条红色横幅，逐步显示进度与异常。
- * 说明：问题定位完后，test.js 应换回正式版 hnust_pg.js。
- */
 // resources/HNUST_PG/hnust_pg.js
 // 湖南科技大学 研究生管理信息系统(南京南软 GMIS 5.0) 拾光课程表适配脚本
 // 入口：https://yjsjw.hnust.edu.cn/gmis/home/stulogin （学生版登录页）
@@ -94,7 +88,7 @@ const toast = (msg) => {
 // 置为 true 时，会在教务系统页面顶部叠一条红色横幅，逐步显示进度与任何异常。
 // 用于真机排查（toast / 弹窗都可能被静默吞掉，页面上的横幅不会）。
 // 提交上游前必须保持 false。
-const DEBUG_OVERLAY = true;
+const DEBUG_OVERLAY = false;
 
 function dbg(msg) {
     console.log('[HNUST_PG] ' + msg);
