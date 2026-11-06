@@ -1,11 +1,11 @@
 // resources/HNUST_PG/hnust_pg.js
-// 湖南科技大学 研究生管理信息系统(南京南软 GMIS 5.0) 拾光课程表适配脚本
+// 湖南科技大学 研究生管理信息系统 拾光课程表适配脚本
 // 入口：https://yjsjw.hnust.edu.cn/gmis/home/stulogin （学生版登录页）
 //
 // 本脚本的接口与数据结构已在真实账号上抓包核对（2026-2027第一学期, termcode=48）。
 //
 // ===== 两条必须保留的硬约束 =====
-// 1) GMIS 的 Scripts/rajax.js 篡改了 $.ajax：接口响应体是 AES 密文，
+// 1) 本系统的 Scripts/rajax.js 篡改了 $.ajax：接口响应体是 AES 密文，
 //    只有页面自带的 jQuery $.ajax 会被自动解密。所以本脚本只用 $.ajax，禁止改用 fetch。
 // 2) 本系统是 ASP.NET 无 Cookie 会话，会话 id 写在 URL 的 (S(...)) 段里，
 //    且每个静态资源请求都会各自拿到一个新会话 id。因此必须用 getAppBase() 取当前
