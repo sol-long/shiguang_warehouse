@@ -93,9 +93,14 @@
     // 1. 地址与会话
     // ==========================================
 
-    /** 取应用基路径，保留 (S(...)) 会话段，例如 /gmis/(S(xxx))/ */
+    /**
+     * 取应用基路径，保留 (S(...)) 会话段，例如 /gmis/(S(xxx))/
+     * 不锚定行首：本系统是校内网，走学校 WebVPN 时路径会变成
+     * /https/<编码>/gmis/(S(xxx))/... ，此时基路径要连 WebVPN 前缀一起带上，
+     * 否则请求会绕开 VPN 直连内网，校外必然失败。
+     */
     function getAppBase() {
-        const m = location.pathname.match(/^(\/gmis\/(?:\(S\([^)]*\)\)\/)?)/i);
+        const m = location.pathname.match(/^(.*?\/gmis\/(?:\(S\([^)]*\)\)\/)?)/i);
         return m ? m[1] : '/gmis/';
     }
 
